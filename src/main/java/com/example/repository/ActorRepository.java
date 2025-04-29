@@ -2,6 +2,7 @@ package com.example.repository;
 
 import com.example.model.Actor;
 import com.example.utils.DatabaseConnection;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,67 +11,87 @@ public class ActorRepository implements Repository<Actor> {
 
     @Override
     public List<Actor> findAll() {
-        List<Actor> list = new ArrayList<>();
-        String sql = "SELECT actor_id, first_name, last_name FROM actor";
+        List<Actor> actorsList = new ArrayList<>();
+        String query = "SELECT actor_id, first_name, last_name FROM actor";
         try (Connection conn = DatabaseConnection.getInstance();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
-                int id = rs.getInt("actor_id");
-                String nombre = rs.getString("first_name") + " " + rs.getString("last_name");
-                list.add(new Actor(id, nombre));
+                int actorId = rs.getInt("actor_id");
+                String name = rs.getString("first_name") + " " + rs.getString("last_name");
+                actorsList.add(new Actor(actorId, name));
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (SQLException error) {
+            throw new RuntimeException(error);
         }
-        return list;
+        return actorsList;
     }
 
     @Override
-    public Actor getByID(Integer id) {
-        String sql = "SELECT actor_id, first_name, last_name FROM actor WHERE actor_id = ?";
+    public Actor getByID(Integer actorId) {
+        String query = "SELECT actor_id, first_name, last_name FROM actor WHERE actor_id = ?";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, actorId);
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    int actorId = rs.getInt("actor_id");
-                    String nombre = rs.getString("first_name") + " " + rs.getString("last_name");
-                    return new Actor(actorId, nombre);
+                    String name = rs.getString("first_name") + " " + rs.getString("last_name");
+                    return new Actor(actorId, name);
                 }
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (SQLException error) {
+            throw new RuntimeException(error);
         }
         return null;
     }
 
     @Override
     public void save(Actor actor) {
-        String[] parts = actor.getNombre().split(" ", 2);
-        String firstName = parts[0];
-        String lastName = parts.length > 1 ? parts[1] : "";
-        String sql = "INSERT INTO actor (actor_id, first_name, last_name) VALUES (?, ?, ?)";
+        String[] tokens = actor.getNombre().split(" ", 2);
+        String query = "INSERT INTO actor (first_name, last_name) VALUES (?, ?)";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, actor.getId());
-            ps.setString(2, firstName);
-            ps.setString(3, lastName);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+             PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, tokens[0]);
+            stmt.setString(2, tokens.length > 1 ? tokens[1] : "");
+            stmt.executeUpdate();
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    actor.setId(keys.getInt(1));
+                }
+            }
+        } catch (SQLException error) {
+            throw new RuntimeException(error);
         }
     }
 
     @Override
-    public void delete(Integer id) {
-        String sql = "DELETE FROM actor WHERE actor_id = ?";
+    public void delete(Integer actorId) {
+        String query = "DELETE FROM actor WHERE actor_id = ?";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, actorId);
+            stmt.executeUpdate();
+        } catch (SQLException error) {
+            throw new RuntimeException(error);
         }
+    }
+
+    public Actor addNew(Actor actor) {
+        String[] tokens = actor.getNombre().split(" ", 2);
+        String query = "INSERT INTO actor (first_name, last_name) VALUES (?, ?)";
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, tokens[0]);
+            stmt.setString(2, tokens.length > 1 ? tokens[1] : "");
+            stmt.execute();
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    actor.setId(keys.getInt(1));
+                }
+            }
+        } catch (SQLException error) {
+            throw new RuntimeException(error);
+        }
+        return actor;
     }
 }
