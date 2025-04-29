@@ -8,22 +8,24 @@ import java.sql.SQLException;
 
 public class Main {
     public static void main(String[] args) {
-        String url  = "jdbc:mysql://localhost:3306/actor";
-        String user = "root";
+        String dbUrl = "jdbc:mysql://localhost:3306/sakila?useSSL=false&serverTimezone=UTC";
+        String dbUser = "root";
+        String sql = "SELECT actor_id, first_name, last_name FROM actor";
 
         try (
-            Connection conn = DatabaseConnection.getInstance(url, user);
-            Statement  stmt = conn.createStatement();
-            ResultSet  rs   = stmt.executeQuery("SELECT id, nombre FROM actores")
+            Connection connection = DatabaseConnection.getInstance(dbUrl, dbUser);
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)
         ) {
+            System.out.println("Listado de actores:");
             while (rs.next()) {
-                Integer id     = rs.getInt("id");
-                String  nombre = rs.getString("nombre");
-                System.out.println("Actor ID: " + id + ", Nombre: " + nombre);
+                int id = rs.getInt("actor_id");
+                String fullName = rs.getString("first_name") + " " + rs.getString("last_name");
+                System.out.printf("ID: %d - Nombre completo: %s%n", id, fullName);
             }
-            System.out.println("Conexion exitosa");
+            System.out.println("Operación completada");
         } catch (SQLException e) {
-            System.out.println("Error Conexion");
+            System.out.println("No se pudo establecer la conexión");
             e.printStackTrace();
         }
     }
